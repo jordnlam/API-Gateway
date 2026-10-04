@@ -3,7 +3,7 @@ const app = express();
 
 // Wildcard '*' means 'match any URL path'
 // app.all() means "match GET, POST, PUT, DELETE, etc"
-app.all("*", (req, res) => {
+app.all('/{*path}', (req, res) => {
         // 1. Log what we caught
         console.log(`Intercepted a ${req.method} request going to ${req.originalUrl}`);
         // 2. Look at the headers the client sent

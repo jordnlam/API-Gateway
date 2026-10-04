@@ -1,15 +1,33 @@
 const express = require('express');
+const http = require('http');
 const app = express();
 
-// Wildcard '*' means 'match any URL path'
-// app.all() means "match GET, POST, PUT, DELETE, etc"
 app.all('/{*path}', (req, res) => {
-        // 1. Log what we caught
-        console.log(`Intercepted a ${req.method} request going to ${req.originalUrl}`);
-        // 2. Look at the headers the client sent
-        console.log('Headers provided:', req.headers);
-        // 3. Temporarily send a basic response so the browser doesn't hand forever
-        res.send('Gateway intercepted the traffic successfully!');
+        // 1 Construct the exact options for the backend request
+        const options = {
+                hostname: 'localhost',
+                port: 4000,
+                path: req.originalUrl,
+                method: req.method,
+                headers: { ...req.headers }
+        };
+
+        // 2. Strip out the 'host' header
+        delete options.headers['host'];
+
+        // 3. Create the outbound request to the backend
+        const proxyReq = http.request(options, (backendRes) => {
+                res.send(`Gateway Success! Backend answered with status: ${backendRes.statusCode}`);
+        });
+
+        // 4. Handle errors (e.g. if you forget to start backend.js)
+        proxyReq.on('error', (err) => {
+                console.error('Gateway failed to reach backend:', error.message);
+                res.status(502).send('502 Bad Gateway');
+        });
+
+        // 5. Send request
+        proxyReq.end()
 });
 
 const PORT = 3000;

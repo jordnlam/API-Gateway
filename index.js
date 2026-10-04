@@ -3,7 +3,7 @@ const http = require('http');
 const app = express();
 
 app.all('/{*path}', (req, res) => {
-        // 1 Construct the exact options for the backend request
+        // Construct the exact options for the backend request
         const options = {
                 hostname: 'localhost',
                 port: 4000,
@@ -12,22 +12,23 @@ app.all('/{*path}', (req, res) => {
                 headers: { ...req.headers }
         };
 
-        // 2. Strip out the 'host' header
+        // Strip out the 'host' header
         delete options.headers['host'];
 
-        // 3. Create the outbound request to the backend
+        // Create the outbound request to the backend
         const proxyReq = http.request(options, (backendRes) => {
-                res.send(`Gateway Success! Backend answered with status: ${backendRes.statusCode}`);
+                res.writeHead(backendRes.statusCode, backendRes.headers);
+                backendRes.pipe(res);
         });
 
-        // 4. Handle errors (e.g. if you forget to start backend.js)
+        // Handle errors (e.g. if you forget to start backend.js)
         proxyReq.on('error', (err) => {
                 console.error('Gateway failed to reach backend:', error.message);
                 res.status(502).send('502 Bad Gateway');
         });
 
-        // 5. Send request
-        proxyReq.end()
+        // Stream the request body from the client directly to the backend
+        req.pipe(proxyReq);
 });
 
 const PORT = 3000;
